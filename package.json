@@ -1,0 +1,22 @@
+{
+  "name": "game-of-life",
+  "version": "0.1.0",
+  "description": "HTML5 simulation of Conway's Game of Life",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sahircansurmeli/game-of-life.git"
+  },
+  "author": "Sahircan Sürmeli",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sahircansurmeli/game-of-life/issues"
+  },
+  "homepage": "https://github.com/sahircansurmeli/game-of-life#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
