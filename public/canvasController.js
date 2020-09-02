@@ -1,19 +1,31 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const SCROLL_SPEED = 0.005;
+const MIN_SQUARE_SIZE = 5;
+const DEFAULT_SQUARE_SIZE = 30;
+const DEFAULT_GPS = 5; // Generations per second
+const DRAG_THRESHOLD = 5;
+const RANDOMIZE_DENSITY = 0.5;
+let squareSize = DEFAULT_SQUARE_SIZE;
 let canvasWidth;
 let canvasHeight;
-const SQUARE_SIZE = 30;
-const DEFAULT_GPS = 2
-let gps = DEFAULT_GPS; // Generations per second
-const game = new Game();
-let isTicking = false;
+let centerX;
+let centerY;
+let isMouseDown = false;
+let isDragging = false;
+let panX = 0;
+let panY = 0;
 let animationInterval;
+let gps = DEFAULT_GPS;
+let isTicking = false;
 
-window.addEventListener("resize", setupCanvas);
+const game = new Game();
 
 function setupCanvas() {
   canvasWidth = canvas.width = window.innerWidth;
   canvasHeight = canvas.height = window.innerHeight;
+  centerX = canvasWidth / 2;
+  centerY = canvasHeight / 2;
   fillBackground();
   drawGrid();
   drawCells();
@@ -25,14 +37,27 @@ function fillBackground() {
 }
 
 function drawGrid() {
-  for (let x = 0; x <= canvasWidth; x += SQUARE_SIZE) {
+  // Left
+  for (let x = centerX + panX; x >= 0; x -= squareSize) {
     ctx.moveTo(x, 0);
     ctx.lineTo(x, canvasHeight);
   }
-  for (let y = 0; y <= canvasHeight; y += SQUARE_SIZE) {
+  // Right
+  for (let x = centerX + panX; x <= canvasWidth; x += squareSize) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvasHeight);
+  }
+  // Up
+  for (let y = centerY + panY; y >= 0; y -= squareSize) {
     ctx.moveTo(0, y);
     ctx.lineTo(canvasWidth, y);
   }
+  // Down
+  for (let y = centerY + panY; y <= canvasHeight; y += squareSize) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvasWidth, y);
+  }
+  // Draw
   ctx.strokeStyle = "#ffffff";
   ctx.stroke();
 }
@@ -44,15 +69,15 @@ function drawCells() {
 }
 
 function getGridCoordinates(x, y) {
-  return [Math.floor(x / SQUARE_SIZE), Math.floor(y / SQUARE_SIZE)];
+  return [Math.floor((x - centerX - panX) / squareSize), Math.floor((y - centerY - panY) / squareSize)];
 }
 
 function getScreenCoordinates(coordinates, padding) {
   return [
-    coordinates[0] * SQUARE_SIZE + padding / 2, 
-    coordinates[1] * SQUARE_SIZE + padding / 2,
-    SQUARE_SIZE - padding,
-    SQUARE_SIZE - padding
+    centerX + panX + coordinates[0] * squareSize + padding / 2,
+    centerY + panY + coordinates[1] * squareSize + padding / 2,
+    squareSize - padding,
+    squareSize - padding
   ];
 }
 
@@ -66,14 +91,23 @@ function removeCell(coordinates) {
   ctx.fillRect(...getScreenCoordinates(coordinates, 1));
 }
 
+function pan(dX, dY) {
+  panX += dX;
+  panY += dY;
+}
+
 function onClick(ev) {
-  const coordinates = getGridCoordinates(ev.x, ev.y);
-  if (game.cellStates[coordinates.join(",")]) {
-    game.removeCell(coordinates);
-    removeCell(coordinates);
+  if (isDragging) {
+    isDragging = false;
   } else {
-    game.addCell(coordinates);
-    addCell(coordinates);
+    const coordinates = getGridCoordinates(ev.x, ev.y);
+    if (game.cellStates[coordinates.join(",")]) {
+      game.removeCell(coordinates);
+      removeCell(coordinates);
+    } else {
+      game.addCell(coordinates);
+      addCell(coordinates);
+    }
   }
 }
 
@@ -138,17 +172,26 @@ function resetTickSpeed() {
   resetTimer();
 }
 
+function getBorders() {
+  const topLeft = getGridCoordinates(0, 0);
+  const bottomRight = getGridCoordinates(canvasWidth, canvasHeight);
+  return [topLeft[0], topLeft[1], bottomRight[0], bottomRight[1]];
+}
+
 function randomize() {
   clear();
-  for (let x = 0; x < canvasWidth / SQUARE_SIZE; x++) {
-    for (let y = 0; y < canvasHeight / SQUARE_SIZE; y++) {
-      if (Math.random() > 0.5) {
+  const borders = getBorders();
+  for (let x = borders[0]; x <= borders[2]; x++) {
+    for (let y = borders[1]; y <= borders[3]; y++) {
+      if (Math.random() > 1 - RANDOMIZE_DENSITY) {
         game.addCell([x, y]);
         addCell([x, y]);
       }
     }
   }
 }
+
+window.addEventListener("resize", setupCanvas);
 
 canvas.addEventListener("click", onClick);
 /*
@@ -177,6 +220,26 @@ window.addEventListener("keyup", function (ev) {
   } else if (ev.key === "r") {
     randomize();
   }
+});
+
+// Zoom
+window.addEventListener("wheel", function (ev){
+  squareSize = Math.max(squareSize - ev.deltaY * SCROLL_SPEED, MIN_SQUARE_SIZE);
+  setupCanvas();
+});
+
+canvas.addEventListener("mousedown", function () {
+  isMouseDown = true;
+});
+canvas.addEventListener("mousemove", function (ev) {
+  if ((isMouseDown && Math.pow(ev.movementX, 2) + Math.pow(ev.movementY, 2) >= DRAG_THRESHOLD) || isDragging) {
+    isDragging = true;
+    pan(ev.movementX, ev.movementY);
+    setupCanvas();
+  }
+});
+canvas.addEventListener("mouseup", function () {
+  isMouseDown = false;
 });
 
 setupCanvas();

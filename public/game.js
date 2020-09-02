@@ -15,7 +15,7 @@ class Game {
     for (let x = coordinates[0] - 1; x <= coordinates[0] + 1; x++) {
       for (let y = coordinates[1] - 1; y <= coordinates[1] + 1; y++) {
         const neighborString = [x, y].join(",");
-        if (neighborString !== coordinatesString && x >= 0 && y >= 0) {
+        if (neighborString !== coordinatesString) {
           this.neighborCounts[neighborString] = this.neighborCounts[neighborString] + 1 || 1;
         }
       }
@@ -28,7 +28,7 @@ class Game {
     for (let x = coordinates[0] - 1; x <= coordinates[0] + 1; x++) {
       for (let y = coordinates[1] - 1; y <= coordinates[1] + 1; y++) {
         const neighborString = [x, y].join(",");
-        if (neighborString !== coordinatesString && x >= 0 && y >= 0) {
+        if (neighborString !== coordinatesString) {
           this.neighborCounts[neighborString] = this.neighborCounts[neighborString] - 1;
         }
       }
